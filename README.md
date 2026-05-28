@@ -1,7 +1,7 @@
 
 
 
-=======
+
 # Projeto-Integrador-1-ADS-Quinta-Feira-2025-
 --------------------------------------------------------------------------------
 Professora: Kadidja Valeria Reginaldo de Oliveira
