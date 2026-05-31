@@ -1,0 +1,931 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans, system-ui, sans-serif); background: transparent; }
+
+  .app-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 0 32px;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    border-right: 0.5px solid var(--color-border-secondary);
+    transition: all 0.2s;
+  }
+  .tab-btn:last-child { border-right: none; }
+  .tab-btn.active {
+    background: #1a1a2e;
+    color: #fff;
+  }
+  .tab-btn i { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  .phone-frame {
+    width: 360px;
+    min-height: 720px;
+    border-radius: 32px;
+    border: 2.5px solid var(--color-border-primary);
+    overflow: hidden;
+    position: relative;
+    background: #0f1117;
+    box-shadow: none;
+  }
+
+  .screen { display: none; flex-direction: column; height: 100%; min-height: 720px; }
+  .screen.active { display: flex; }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px 6px;
+    font-size: 11px;
+    color: #fff;
+    background: transparent;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+  }
+  .status-bar .time { font-weight: 500; }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+
+  /* ── MAP AREA ── */
+  .map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #1a2332;
+    min-height: 380px;
+  }
+
+  .map-svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+
+  /* ── DRIVER NOTIFICATION BANNER ── */
+  .notif-banner {
+    position: absolute;
+    top: 36px; left: 12px; right: 12px;
+    background: rgba(22, 163, 74, 0.95);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 20;
+    color: #fff;
+  }
+  .notif-banner.warning { background: rgba(245, 158, 11, 0.95); }
+  .notif-banner.arriving { background: rgba(59, 130, 246, 0.95); }
+  .notif-banner i { font-size: 20px; flex-shrink: 0; }
+  .notif-banner .notif-title { font-size: 13px; font-weight: 500; }
+  .notif-banner .notif-sub { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+
+  /* ── MAP OVERLAY TOP ── */
+  .map-overlay-top {
+    position: absolute;
+    top: 90px; left: 12px; right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 5;
+  }
+
+  .speed-pill {
+    background: rgba(15,17,23,0.85);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .eta-pill {
+    background: rgba(250, 204, 21, 0.95);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: #1a1200;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .student-count-pill {
+    background: rgba(59, 130, 246, 0.9);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── BOTTOM SHEET ── */
+  .bottom-sheet {
+    background: #0f1117;
+    border-radius: 24px 24px 0 0;
+    padding: 0 0 24px;
+    border-top: 0.5px solid #2a2d3a;
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: #3a3d4a;
+    border-radius: 2px;
+    margin: 12px auto 16px;
+  }
+
+  .next-stop-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 20px;
+    margin-bottom: 6px;
+  }
+
+  .next-stop-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    margin-bottom: 12px;
+  }
+
+  .avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .av-blue { background: #1e3a5f; color: #60a5fa; }
+  .av-green { background: #14532d; color: #4ade80; }
+  .av-amber { background: #451a03; color: #fbbf24; }
+  .av-purple { background: #2e1065; color: #c084fc; }
+
+  .next-stop-info { flex: 1; }
+  .next-stop-info .student-name { color: #fff; font-size: 15px; font-weight: 500; }
+  .next-stop-info .student-addr { color: #888; font-size: 12px; margin-top: 2px; }
+
+  .eta-badge {
+    background: #1e2d40;
+    border-radius: 10px;
+    padding: 6px 12px;
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+  }
+  .eta-badge small { display: block; font-size: 10px; color: #4a7aa0; margin-top: 1px; }
+
+  /* ── CONFIRM BUTTON (DRIVER) ── */
+  .confirm-btn {
+    margin: 0 16px 14px;
+    padding: 20px;
+    background: #facc15;
+    border: none;
+    border-radius: 18px;
+    color: #1a1200;
+    font-size: 17px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: calc(100% - 32px);
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .confirm-btn i { font-size: 22px; }
+  .confirm-btn:active { transform: scale(0.97); }
+  .confirm-btn.checked {
+    background: #16a34a;
+    color: #fff;
+  }
+
+  /* START BUTTON (DRIVER) */
+  .start-btn {
+    margin: 0 16px 10px;
+    padding: 18px;
+    background: #22c55e;
+    border: none;
+    border-radius: 18px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: calc(100% - 32px);
+    transition: all 0.15s;
+  }
+  .start-btn i { font-size: 22px; }
+  .start-btn.running {
+    background: #dc2626;
+  }
+
+  /* ── STUDENT CHIPS ── */
+  .chips-area {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .chips-area::-webkit-scrollbar { display: none; }
+
+  .student-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 6px 8px;
+    border-radius: 20px;
+    background: #1a1d2a;
+    border: 0.5px solid #2a2d3a;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-green { background: #22c55e; }
+  .dot-amber { background: #f59e0b; }
+  .dot-red { background: #ef4444; }
+  .dot-blue { background: #3b82f6; }
+  .student-chip span { font-size: 12px; color: #ccc; }
+
+  /* ── PARENT/STUDENT SCREEN ── */
+  .parent-header {
+    position: absolute;
+    top: 32px; left: 0; right: 0;
+    z-index: 20;
+    padding: 0 12px;
+  }
+
+  .parent-notif {
+    background: rgba(22, 163, 74, 0.96);
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .parent-notif.blue { background: rgba(37, 99, 235, 0.96); }
+  .parent-notif i { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .parent-notif .pn-title { font-size: 14px; font-weight: 500; }
+  .parent-notif .pn-sub { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+
+  .arriving-countdown {
+    background: rgba(250, 204, 21, 0.97);
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #1a1200;
+  }
+  .arriving-countdown i { font-size: 26px; flex-shrink: 0; }
+  .arriving-countdown .ac-time { font-size: 28px; font-weight: 500; }
+  .arriving-countdown .ac-label { font-size: 12px; opacity: 0.7; }
+
+  /* ── PARENT BOTTOM SHEET ── */
+  .parent-bottom {
+    background: #0f1117;
+    border-radius: 24px 24px 0 0;
+    padding: 0 0 24px;
+    border-top: 0.5px solid #2a2d3a;
+  }
+
+  .tracking-card {
+    margin: 0 16px 12px;
+    background: #171a24;
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 0.5px solid #2a2d3a;
+  }
+  .tracking-card .tc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tracking-card .tc-row:last-child { margin-bottom: 0; }
+  .tracking-card .tc-label { font-size: 12px; color: #888; }
+  .tracking-card .tc-value { font-size: 13px; color: #e5e7eb; font-weight: 500; }
+  .tc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tc-status.green { background: #14532d; color: #4ade80; }
+  .tc-status.amber { background: #451a03; color: #fbbf24; }
+  .tc-status.blue { background: #1e3a5f; color: #60a5fa; }
+
+  .absence-btn {
+    margin: 0 16px;
+    padding: 14px;
+    background: transparent;
+    border: 0.5px solid #f59e0b;
+    border-radius: 14px;
+    color: #f59e0b;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 32px);
+    transition: all 0.2s;
+  }
+  .absence-btn:active { background: #451a03; }
+  .absence-btn i { font-size: 18px; }
+
+  /* ── VAN MARKER ANIMATION ── */
+  @keyframes vanMove {
+    0%   { transform: translate(80px, 260px) rotate(0deg); }
+    25%  { transform: translate(140px, 200px) rotate(-30deg); }
+    50%  { transform: translate(210px, 140px) rotate(-45deg); }
+    75%  { transform: translate(270px, 100px) rotate(-10deg); }
+    100% { transform: translate(310px, 90px) rotate(0deg); }
+  }
+  @keyframes vanMoveParent {
+    0%   { transform: translate(80px, 260px) rotate(0deg); }
+    25%  { transform: translate(140px, 200px) rotate(-30deg); }
+    50%  { transform: translate(210px, 140px) rotate(-45deg); }
+    75%  { transform: translate(270px, 100px) rotate(-10deg); }
+    100% { transform: translate(310px, 90px) rotate(0deg); }
+  }
+  .van-marker { animation: vanMove 8s ease-in-out infinite alternate; }
+  .van-marker-p { animation: vanMoveParent 8s ease-in-out infinite alternate; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+  .pulse-ring { animation: pulse 2s ease-in-out infinite; }
+
+  @keyframes countDown {
+    0%  { content: "3 min"; }
+    33% { content: "2 min"; }
+    66% { content: "1 min"; }
+  }
+
+  .route-dot {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* header app */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 34px 20px 10px;
+    position: relative;
+    z-index: 5;
+  }
+  .app-logo { color: #facc15; font-size: 16px; font-weight: 500; letter-spacing: 0.5px; }
+  .app-header-right { display: flex; gap: 12px; align-items: center; }
+  .app-header-right i { font-size: 20px; color: #888; }
+  .app-header-right .online-dot {
+    width: 8px; height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+  }
+</style>
+
+<div class="app-wrapper">
+  <h2 class="sr-only">Protótipo VansMind — três telas: motorista, responsável e aluno</h2>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showScreen('driver')">
+      <i class="ti ti-steering-wheel" aria-hidden="true"></i>Motorista
+    </button>
+    <button class="tab-btn" onclick="showScreen('parent')">
+      <i class="ti ti-heart" aria-hidden="true"></i>Responsável
+    </button>
+    <button class="tab-btn" onclick="showScreen('student')">
+      <i class="ti ti-school" aria-hidden="true"></i>Aluno
+    </button>
+  </div>
+
+  <div class="phone-frame">
+
+    <!-- ══════════════════════════════
+         TELA 1 — MOTORISTA
+    ══════════════════════════════ -->
+    <div class="screen active" id="screen-driver">
+
+      <!-- Header -->
+      <div class="app-header">
+        <div class="app-logo">VansMind</div>
+        <div class="app-header-right">
+          <div style="position:relative">
+            <i class="ti ti-wifi" aria-hidden="true"></i>
+            <div class="online-dot"></div>
+          </div>
+          <i class="ti ti-user-circle" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="map-area">
+        <svg class="map-svg" viewBox="0 0 360 400" xmlns="http://www.w3.org/2000/svg">
+          <!-- Map background tiles -->
+          <rect width="360" height="400" fill="#1a2332"/>
+          <!-- Streets grid -->
+          <line x1="0" y1="320" x2="360" y2="320" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="0" y1="260" x2="360" y2="260" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="0" y1="180" x2="360" y2="180" stroke="#1e2d3d" stroke-width="10"/>
+          <line x1="60" y1="0" x2="60" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="140" y1="0" x2="140" y2="400" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="240" y1="0" x2="240" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="300" y1="0" x2="300" y2="400" stroke="#1e2d3d" stroke-width="10"/>
+          <!-- diagonal streets -->
+          <line x1="60" y1="400" x2="180" y2="260" stroke="#1e2d3d" stroke-width="5"/>
+          <line x1="300" y1="400" x2="200" y2="180" stroke="#1e2d3d" stroke-width="5"/>
+          <!-- Parks / blocks -->
+          <rect x="70" y="190" width="60" height="60" rx="4" fill="#162a1e" opacity="0.8"/>
+          <rect x="250" y="130" width="40" height="40" rx="4" fill="#162a1e" opacity="0.8"/>
+          <rect x="160" y="270" width="70" height="45" rx="4" fill="#1a2a3a" opacity="0.6"/>
+          <!-- Street names -->
+          <text x="20" y="314" fill="#2d4a6a" font-size="9" font-family="system-ui">Av. Central</text>
+          <text x="20" y="254" fill="#2d4a6a" font-size="9" font-family="system-ui">Rua das Flores</text>
+          <text x="148" y="175" fill="#2d4a6a" font-size="9" font-family="system-ui">Rod. Principal</text>
+
+          <!-- ROUTE POLYLINE -->
+          <polyline points="80,270 100,260 140,240 180,200 220,160 260,130 300,100 320,90"
+            stroke="#facc15" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+          <polyline points="80,270 100,260 140,240 180,200 220,160 260,130 300,100 320,90"
+            stroke="#fff" stroke-width="1.5" fill="none" stroke-dasharray="8,6" stroke-linecap="round" opacity="0.4"/>
+
+          <!-- Stop markers -->
+          <!-- Stop 1 - checked -->
+          <g transform="translate(100,260)">
+            <circle r="10" fill="#16a34a" opacity="0.9"/>
+            <text x="0" y="4" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">✓</text>
+          </g>
+          <!-- Stop 2 - checked -->
+          <g transform="translate(140,240)">
+            <circle r="10" fill="#16a34a" opacity="0.9"/>
+            <text x="0" y="4" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">✓</text>
+          </g>
+          <!-- Stop 3 - NEXT -->
+          <g transform="translate(180,200)">
+            <circle r="14" fill="#facc15" class="pulse-ring" opacity="0.3"/>
+            <circle r="10" fill="#facc15"/>
+            <text x="0" y="4" text-anchor="middle" fill="#1a1200" font-size="9" font-weight="bold">3</text>
+          </g>
+          <!-- Stop 4,5 -->
+          <g transform="translate(240,150)">
+            <circle r="8" fill="#374151" stroke="#6b7280" stroke-width="1"/>
+            <text x="0" y="4" text-anchor="middle" fill="#9ca3af" font-size="9">4</text>
+          </g>
+          <g transform="translate(300,100)">
+            <circle r="8" fill="#374151" stroke="#6b7280" stroke-width="1"/>
+            <text x="0" y="4" text-anchor="middle" fill="#9ca3af" font-size="9">5</text>
+          </g>
+
+          <!-- School destination -->
+          <g transform="translate(320,90)">
+            <rect x="-16" y="-14" width="32" height="28" rx="6" fill="#1e3a5f"/>
+            <text x="0" y="5" text-anchor="middle" fill="#60a5fa" font-size="14">🏫</text>
+          </g>
+
+          <!-- VAN MARKER -->
+          <g class="van-marker">
+            <circle r="18" fill="#facc15" opacity="0.2"/>
+            <circle r="12" fill="#facc15"/>
+            <text x="0" y="5" text-anchor="middle" font-size="13">🚐</text>
+          </g>
+        </svg>
+
+        <!-- Speed + ETA overlays -->
+        <div class="map-overlay-top">
+          <div class="speed-pill">
+            <i class="ti ti-gauge" aria-hidden="true" style="font-size:14px;color:#888;"></i>
+            <span id="speed-val">38</span> km/h
+          </div>
+          <div class="eta-pill">
+            <i class="ti ti-clock" aria-hidden="true" style="font-size:14px;"></i>
+            <span id="eta-school">12 min</span> escola
+          </div>
+        </div>
+
+        <!-- Route notification -->
+        <div class="notif-banner" id="route-notif" style="top: 82px;">
+          <i class="ti ti-navigation" aria-hidden="true"></i>
+          <div>
+            <div class="notif-title">Rota em andamento</div>
+            <div class="notif-sub">Próxima parada: João · Rua das Flores, 42</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM SHEET -->
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+
+        <!-- START / STOP -->
+        <button class="start-btn" id="start-btn" onclick="toggleStart()">
+          <i class="ti ti-player-play" id="start-icon" aria-hidden="true"></i>
+          <span id="start-label">Iniciar corrida</span>
+        </button>
+
+        <!-- Next stop -->
+        <div class="next-stop-label">Próxima parada</div>
+        <div class="next-stop-card">
+          <div class="avatar av-blue">JL</div>
+          <div class="next-stop-info">
+            <div class="student-name">João Lucas</div>
+            <div class="student-addr">Rua das Flores, 42</div>
+          </div>
+          <div class="eta-badge">
+            2 min
+            <small>estimado</small>
+          </div>
+        </div>
+
+        <!-- Confirm / Check-in button -->
+        <button class="confirm-btn" id="confirm-btn" onclick="toggleConfirm()">
+          <i class="ti ti-user-check" id="confirm-icon" aria-hidden="true"></i>
+          <span id="confirm-label">Confirmar embarque</span>
+        </button>
+
+        <!-- Student chips -->
+        <div class="chips-area">
+          <div class="student-chip">
+            <div class="chip-dot dot-green"></div>
+            <span>Ana ✓</span>
+          </div>
+          <div class="student-chip">
+            <div class="chip-dot dot-green"></div>
+            <span>Pedro ✓</span>
+          </div>
+          <div class="student-chip" id="chip-joao">
+            <div class="chip-dot dot-amber"></div>
+            <span>João ⟳</span>
+          </div>
+          <div class="student-chip">
+            <div class="chip-dot dot-blue"></div>
+            <span>Maria</span>
+          </div>
+          <div class="student-chip">
+            <div class="chip-dot dot-blue"></div>
+            <span>Luís</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         TELA 2 — RESPONSÁVEL
+    ══════════════════════════════ -->
+    <div class="screen" id="screen-parent">
+
+      <div class="app-header">
+        <div class="app-logo">VansMind</div>
+        <div class="app-header-right">
+          <i class="ti ti-bell" aria-hidden="true" style="color:#facc15;"></i>
+          <i class="ti ti-user-circle" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="map-area">
+        <svg class="map-svg" viewBox="0 0 360 400" xmlns="http://www.w3.org/2000/svg">
+          <rect width="360" height="400" fill="#1a2332"/>
+          <line x1="0" y1="320" x2="360" y2="320" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="0" y1="260" x2="360" y2="260" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="0" y1="180" x2="360" y2="180" stroke="#1e2d3d" stroke-width="10"/>
+          <line x1="60" y1="0" x2="60" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="140" y1="0" x2="140" y2="400" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="240" y1="0" x2="240" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="300" y1="0" x2="300" y2="400" stroke="#1e2d3d" stroke-width="10"/>
+          <line x1="60" y1="400" x2="180" y2="260" stroke="#1e2d3d" stroke-width="5"/>
+          <rect x="70" y="190" width="60" height="60" rx="4" fill="#162a1e" opacity="0.8"/>
+          <rect x="250" y="130" width="40" height="40" rx="4" fill="#162a1e" opacity="0.8"/>
+
+          <!-- Van route trace (parent view) -->
+          <polyline points="80,270 100,260 140,240 180,200 220,160 260,130 300,100 320,90"
+            stroke="#3b82f6" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5" stroke-dasharray="10,6"/>
+
+          <!-- School destination -->
+          <g transform="translate(320,90)">
+            <rect x="-16" y="-14" width="32" height="28" rx="6" fill="#1e3a5f"/>
+            <text x="0" y="5" text-anchor="middle" fill="#60a5fa" font-size="14">🏫</text>
+            <text x="0" y="26" text-anchor="middle" fill="#60a5fa" font-size="9">Escola</text>
+          </g>
+
+          <!-- Student home pin -->
+          <g transform="translate(180,200)">
+            <circle r="14" fill="#14532d" opacity="0.6"/>
+            <text x="0" y="5" text-anchor="middle" font-size="13">🏠</text>
+            <text x="0" y="24" text-anchor="middle" fill="#4ade80" font-size="9">Sua casa</text>
+          </g>
+
+          <!-- VAN MARKER moving -->
+          <g class="van-marker-p">
+            <circle r="20" fill="#facc15" opacity="0.15"/>
+            <circle r="13" fill="#facc15"/>
+            <text x="0" y="5" text-anchor="middle" font-size="13">🚐</text>
+          </g>
+        </svg>
+
+        <!-- Parent notification ARRIVED AT SCHOOL -->
+        <div class="parent-header">
+          <div class="parent-notif" id="school-arrival-notif">
+            <i class="ti ti-school" aria-hidden="true"></i>
+            <div>
+              <div class="pn-title">Ana chegou à escola!</div>
+              <div class="pn-sub">Embarque confirmado às 07:42 · Colégio Central</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parent Bottom Sheet -->
+      <div class="parent-bottom">
+        <div class="sheet-handle"></div>
+
+        <div class="tracking-card">
+          <div class="tc-row">
+            <span class="tc-label">Aluno</span>
+            <span class="tc-value">Ana Souza</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">Status</span>
+            <span class="tc-status green">
+              <i class="ti ti-check" aria-hidden="true" style="font-size:12px;"></i>
+              Embarcada
+            </span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">Motorista</span>
+            <span class="tc-value">João M. · ⭐ 4.9</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">ETA escola</span>
+            <span class="tc-value" style="color:#60a5fa;">Chegou 07:42</span>
+          </div>
+        </div>
+
+        <button class="absence-btn" onclick="markAbsence()">
+          <i class="ti ti-calendar-x" aria-hidden="true"></i>
+          <span id="absence-label">Marcar falta para amanhã</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         TELA 3 — ALUNO
+    ══════════════════════════════ -->
+    <div class="screen" id="screen-student">
+
+      <div class="app-header">
+        <div class="app-logo">VansMind</div>
+        <div class="app-header-right">
+          <i class="ti ti-bell" aria-hidden="true" style="color:#facc15;"></i>
+          <i class="ti ti-user-circle" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="map-area">
+        <svg class="map-svg" viewBox="0 0 360 400" xmlns="http://www.w3.org/2000/svg">
+          <rect width="360" height="400" fill="#1a2332"/>
+          <line x1="0" y1="320" x2="360" y2="320" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="0" y1="260" x2="360" y2="260" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="0" y1="180" x2="360" y2="180" stroke="#1e2d3d" stroke-width="10"/>
+          <line x1="60" y1="0" x2="60" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="140" y1="0" x2="140" y2="400" stroke="#1e2d3d" stroke-width="8"/>
+          <line x1="240" y1="0" x2="240" y2="400" stroke="#1e2d3d" stroke-width="6"/>
+          <line x1="300" y1="0" x2="300" y2="400" stroke="#1e2d3d" stroke-width="10"/>
+          <line x1="60" y1="400" x2="180" y2="260" stroke="#1e2d3d" stroke-width="5"/>
+          <rect x="70" y="190" width="60" height="60" rx="4" fill="#162a1e" opacity="0.8"/>
+          <rect x="250" y="130" width="40" height="40" rx="4" fill="#162a1e" opacity="0.8"/>
+
+          <!-- Van route to student home -->
+          <polyline points="310,90 270,100 240,130 210,160 180,200"
+            stroke="#a78bfa" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.6" stroke-dasharray="8,5"/>
+
+          <!-- Student HOME (destination for van) -->
+          <g transform="translate(180,200)">
+            <circle r="20" fill="#4c1d95" opacity="0.7" class="pulse-ring"/>
+            <circle r="13" fill="#7c3aed"/>
+            <text x="0" y="5" text-anchor="middle" font-size="14">🏠</text>
+            <text x="0" y="26" text-anchor="middle" fill="#c4b5fd" font-size="9">Você está aqui</text>
+          </g>
+
+          <!-- VAN approaching student home -->
+          <g transform="translate(310,90)">
+            <circle r="18" fill="#facc15" opacity="0.2"/>
+            <circle r="12" fill="#facc15"/>
+            <text x="0" y="5" text-anchor="middle" font-size="13">🚐</text>
+          </g>
+
+          <!-- Animated van route dots -->
+          <circle cx="270" cy="105" r="4" fill="#facc15" opacity="0.6" class="route-dot" style="animation-delay:0.3s"/>
+          <circle cx="240" cy="130" r="4" fill="#facc15" opacity="0.5" class="route-dot" style="animation-delay:0.6s"/>
+          <circle cx="210" cy="162" r="4" fill="#facc15" opacity="0.4" class="route-dot" style="animation-delay:0.9s"/>
+        </svg>
+
+        <!-- STUDENT — VAN ARRIVING NOTIFICATION -->
+        <div class="parent-header">
+          <div class="arriving-countdown">
+            <i class="ti ti-bus" aria-hidden="true"></i>
+            <div>
+              <div class="ac-time" id="countdown-display">3 min</div>
+              <div class="ac-label">Van chegando na sua casa</div>
+            </div>
+          </div>
+
+          <div style="height:8px;"></div>
+
+          <div class="parent-notif blue">
+            <i class="ti ti-map-pin" aria-hidden="true"></i>
+            <div>
+              <div class="pn-title">Motorista João está chegando!</div>
+              <div class="pn-sub">Prepare-se · Placa ABC-1234 · Van amarela</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Bottom Sheet -->
+      <div class="parent-bottom">
+        <div class="sheet-handle"></div>
+
+        <div class="tracking-card">
+          <div class="tc-row">
+            <span class="tc-label">Motorista</span>
+            <span class="tc-value">João Motorista · ⭐ 4.9</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">Veículo</span>
+            <span class="tc-value">Van branca · ABC-1234</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">Status</span>
+            <span class="tc-status amber">
+              <i class="ti ti-navigation" aria-hidden="true" style="font-size:12px;"></i>
+              A caminho
+            </span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-label">Colegas na van</span>
+            <span class="tc-value">Ana ✓ · Pedro ✓ · 2 alunos</span>
+          </div>
+        </div>
+
+        <button class="absence-btn" style="border-color:#ef4444; color:#ef4444;" onclick="markStudentAbsence()">
+          <i class="ti ti-calendar-x" aria-hidden="true"></i>
+          <span id="student-absence-label">Não vou hoje — avisar motorista</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    const btns = document.querySelectorAll('.tab-btn');
+    const map = { driver: 0, parent: 1, student: 2 };
+    btns[map[name]].classList.add('active');
+  }
+
+  let started = false;
+  function toggleStart() {
+    started = !started;
+    const btn = document.getElementById('start-btn');
+    const icon = document.getElementById('start-icon');
+    const label = document.getElementById('start-label');
+    if (started) {
+      btn.classList.add('running');
+      icon.className = 'ti ti-player-stop';
+      label.textContent = 'Encerrar corrida';
+    } else {
+      btn.classList.remove('running');
+      icon.className = 'ti ti-player-play';
+      label.textContent = 'Iniciar corrida';
+    }
+  }
+
+  let confirmed = false;
+  function toggleConfirm() {
+    confirmed = !confirmed;
+    const btn = document.getElementById('confirm-btn');
+    const icon = document.getElementById('confirm-icon');
+    const label = document.getElementById('confirm-label');
+    const chip = document.getElementById('chip-joao');
+    if (confirmed) {
+      btn.classList.add('checked');
+      icon.className = 'ti ti-check';
+      label.textContent = 'João embarcado!';
+      chip.innerHTML = '<div class="chip-dot dot-green"></div><span>João ✓</span>';
+    } else {
+      btn.classList.remove('checked');
+      icon.className = 'ti ti-user-check';
+      label.textContent = 'Confirmar embarque';
+      chip.innerHTML = '<div class="chip-dot dot-amber"></div><span>João ⟳</span>';
+    }
+  }
+
+  let absent = false;
+  function markAbsence() {
+    absent = !absent;
+    const label = document.getElementById('absence-label');
+    const notif = document.getElementById('school-arrival-notif');
+    if (absent) {
+      label.textContent = 'Falta cancelada — desfazer';
+      notif.style.background = 'rgba(220, 38, 38, 0.95)';
+      notif.innerHTML = '<i class="ti ti-alert-triangle" aria-hidden="true"></i><div><div class="pn-title">Falta registrada para amanhã</div><div class="pn-sub">Motorista notificado · Rota será ajustada</div></div>';
+    } else {
+      label.textContent = 'Marcar falta para amanhã';
+      notif.style.background = 'rgba(22, 163, 74, 0.96)';
+      notif.innerHTML = '<i class="ti ti-school" aria-hidden="true"></i><div><div class="pn-title">Ana chegou à escola!</div><div class="pn-sub">Embarque confirmado às 07:42 · Colégio Central</div></div>';
+    }
+  }
+
+  let studentAbsent = false;
+  function markStudentAbsence() {
+    studentAbsent = !studentAbsent;
+    const label = document.getElementById('student-absence-label');
+    const countdown = document.getElementById('countdown-display');
+    if (studentAbsent) {
+      label.textContent = 'Cancelar — vou comparecer';
+      countdown.textContent = '—';
+      countdown.closest('.arriving-countdown').style.background = 'rgba(220,38,38,0.95)';
+      countdown.closest('.arriving-countdown').style.color = '#fff';
+    } else {
+      label.textContent = 'Não vou hoje — avisar motorista';
+      countdown.textContent = '3 min';
+      countdown.closest('.arriving-countdown').style.background = 'rgba(250,204,21,0.97)';
+      countdown.closest('.arriving-countdown').style.color = '#1a1200';
+    }
+  }
+
+  // Countdown timer for student screen
+  let countdownVal = 3;
+  setInterval(() => {
+    const el = document.getElementById('countdown-display');
+    if (!el || studentAbsent) return;
+    if (countdownVal > 1) countdownVal--;
+    else countdownVal = 3;
+    el.textContent = countdownVal + ' min';
+  }, 3000);
+
+  // Speed fluctuation
+  setInterval(() => {
+    const el = document.getElementById('speed-val');
+    if (!el) return;
+    const speeds = [34, 36, 38, 40, 42, 37, 39];
+    el.textContent = speeds[Math.floor(Math.random() * speeds.length)];
+  }, 2000);
+</script>
